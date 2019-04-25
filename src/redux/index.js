@@ -1,9 +1,16 @@
-import { createStore } from 'redux'
+import { createStore, applyMiddleware } from 'redux'
+import createSagaMiddleware from 'redux-saga'
 
 import reducer from './reducer'
+import saga from './saga'
 
-const store = createStore(reducer)
+const sagaMiddleware = createSagaMiddleware()
+const enhancer = applyMiddleware(sagaMiddleware)
+
+const store = createStore(reducer, enhancer)
 export default store
+
+sagaMiddleware.run(saga) 
 
 //dev only
 window.appStore = store

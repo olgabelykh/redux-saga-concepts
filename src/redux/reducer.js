@@ -1,3 +1,8 @@
-const reducer = (state = 'initial state') => state
+import { combineReducers } from 'redux'
+import auth from '../ducks/auth' 
+
+const reducer = combineReducers({
+    auth
+})
 
 export default reducer

@@ -7,7 +7,7 @@ const AuthForm = props => {
     const emailChangeHandler = event => setEmail(event.target.value)
     const passwordChangeHandler = event => setPassword(event.target.value)
 
-    const { submit, caption } = props
+    const { submit, caption, isPending } = props
 
     const submitHandler = event => {
         event.preventDefault()
@@ -28,7 +28,7 @@ const AuthForm = props => {
                 placeholder="password"
                 value={password}
                 onChange={passwordChangeHandler}/>
-            <button type ="submit">{caption}</button>
+            { isPending ? <span>...</span> : <button type ="submit">{caption}</button>}
         </form>
     )
 }
