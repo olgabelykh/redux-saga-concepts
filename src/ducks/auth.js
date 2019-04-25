@@ -20,6 +20,11 @@ export const SIGN_IN_PENDING = `${prefix}/SIGN_IN_PENDING`
 export const SIGN_IN_SUCCESS = `${prefix}/SIGN_IN_SUCCESS`
 export const SIGN_IN_FAIL = `${prefix}/SIGN_IN_FAIL`
 
+export const SIGN_OUT_REQUEST = `${prefix}/SIGN_OUT_REQUEST`
+export const SIGN_OUT_PENDING = `${prefix}/SIGN_OUT_PENDING`
+export const SIGN_OUT_SUCCESS = `${prefix}/SIGN_OUT_SUCCESS`
+export const SIGN_OUT_FAIL = `${prefix}/SIGN_OUT_FAIL`
+
 
 // reducer
 
@@ -31,10 +36,14 @@ const reducer = (state = initialState, action) => {
     switch (type) {
         case SIGN_UP_PENDING:
         case SIGN_IN_PENDING:
+        case SIGN_OUT_PENDING:
             return { isPending: true }
         case SIGN_UP_SUCCESS:
         case SIGN_IN_SUCCESS:
             return { email: payload.email }
+        case SIGN_OUT_SUCCESS:
+        case SIGN_OUT_FAIL:
+            return { ...initialState }
         case SIGN_UP_FAIL:
         case SIGN_IN_FAIL:
             return { error: payload.error }
@@ -92,6 +101,20 @@ export const signInFail = error => ({
 
 export const signIn = (email, password) => signInRequest(email, password)
 
+export const signOutRequest = _ => ({ type: SIGN_OUT_REQUEST })
+
+export const signOutPending = _ => ({ type: SIGN_OUT_PENDING })
+
+export const signOutSuccess = _ => ({ type: SIGN_OUT_SUCCESS })
+
+export const signOutFail = error => ({
+    type: SIGN_OUT_FAIL,
+    payload: { error }
+})
+
+export const signOut = _ => signOutRequest()
+
+
 // sagas
 
 export function* signUpSaga(action) {
@@ -120,10 +143,23 @@ export function* signInSaga(action) {
     }
 }
 
+export function* signOutSaga() {
+    yield put(signOutPending())
+
+    try {
+        yield api.signOut()
+        yield put(signOutSuccess())
+    } catch (error) {
+        yield console.log('SIGN OUT ERROR', error)
+        yield put(signOutFail(error))
+    }
+}
+
 export function* saga () {
     yield all([
         takeEvery(SIGN_UP_REQUEST, signUpSaga),
-        takeEvery(SIGN_IN_REQUEST, signInSaga)
+        takeEvery(SIGN_IN_REQUEST, signInSaga),
+        takeEvery(SIGN_OUT_REQUEST, signOutSaga)
     ])
 }
 
