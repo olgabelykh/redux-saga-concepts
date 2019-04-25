@@ -1,7 +1,11 @@
 import {
     put,
-    takeEvery,
-    all
+    race,
+    fork,
+    call,
+    take,
+    cancel,
+    cancelled
 } from 'redux-saga/effects'
 
 import { appName } from '../config'
@@ -14,18 +18,20 @@ export const SIGN_UP_REQUEST = `${prefix}/SIGN_UP_REQUEST`
 export const SIGN_UP_PENDING = `${prefix}/SIGN_UP_PENDING`
 export const SIGN_UP_SUCCESS = `${prefix}/SIGN_UP_SUCCESS`
 export const SIGN_UP_FAIL = `${prefix}/SIGN_UP_FAIL`
+export const SIGN_UP_CANCEL = `${prefix}/SIGN_UP_CANCEL`
 
 export const SIGN_IN_REQUEST = `${prefix}/SIGN_IN_REQUEST`
 export const SIGN_IN_PENDING = `${prefix}/SIGN_IN_PENDING`
 export const SIGN_IN_SUCCESS = `${prefix}/SIGN_IN_SUCCESS`
 export const SIGN_IN_FAIL = `${prefix}/SIGN_IN_FAIL`
+export const SIGN_IN_CANCEL = `${prefix}/SIGN_IN_CANCEL`
 
 export const SIGN_OUT_REQUEST = `${prefix}/SIGN_OUT_REQUEST`
 export const SIGN_OUT_PENDING = `${prefix}/SIGN_OUT_PENDING`
 export const SIGN_OUT_SUCCESS = `${prefix}/SIGN_OUT_SUCCESS`
 export const SIGN_OUT_FAIL = `${prefix}/SIGN_OUT_FAIL`
 
-
+export const CANCEL_AUTH_REQUEST = `${prefix}/CANCEL_AUTH_REQUEST`
 // reducer
 
 const initialState = {}
@@ -41,6 +47,8 @@ const reducer = (state = initialState, action) => {
         case SIGN_UP_SUCCESS:
         case SIGN_IN_SUCCESS:
             return { email: payload.email }
+        case SIGN_UP_CANCEL:
+        case SIGN_IN_CANCEL:
         case SIGN_OUT_SUCCESS:
         case SIGN_OUT_FAIL:
             return { ...initialState }
@@ -77,6 +85,8 @@ export const signUpFail = error => ({
     payload: { error }
 })
 
+export const signUpCancel = _ => ({ type: SIGN_UP_CANCEL })
+
 export const signUp = (email, password) => signUpRequest(email, password)
 
 export const signInRequest = (email, password) => ({
@@ -99,6 +109,8 @@ export const signInFail = error => ({
     payload: { error }
 })
 
+export const signInCancel = _ => ({ type: SIGN_IN_CANCEL })
+
 export const signIn = (email, password) => signInRequest(email, password)
 
 export const signOutRequest = _ => ({ type: SIGN_OUT_REQUEST })
@@ -114,6 +126,8 @@ export const signOutFail = error => ({
 
 export const signOut = _ => signOutRequest()
 
+export const cancelAuthRequest = _ => ({type: CANCEL_AUTH_REQUEST})
+export const cancelAuth = _ => cancelAuthRequest()
 
 // sagas
 
@@ -127,6 +141,10 @@ export function* signUpSaga(action) {
         yield put(signUpSuccess(user.email))
     } catch (error) {
         yield put(signUpFail(error))
+    } finally {
+        if (yield cancelled()) {
+            yield put(signUpCancel())
+        }
     }
 }
 
@@ -140,6 +158,10 @@ export function* signInSaga(action) {
         yield put(signInSuccess(user.email))
     } catch (error) {
         yield put(signInFail(error))
+    } finally {
+        if (yield cancelled()) {
+            yield put(signInCancel())
+        }
     }
 }
 
@@ -156,10 +178,42 @@ export function* signOutSaga() {
 }
 
 export function* saga () {
-    yield all([
-        takeEvery(SIGN_UP_REQUEST, signUpSaga),
-        takeEvery(SIGN_IN_REQUEST, signInSaga),
-        takeEvery(SIGN_OUT_REQUEST, signOutSaga)
-    ])
+    let task
+
+    while (true) {
+        const [signUpAction, signInAction] = yield race([
+            take(SIGN_UP_REQUEST),
+            take(SIGN_IN_REQUEST) 
+        ])
+
+        if (signUpAction) {
+            task = yield fork(signUpSaga, signUpAction)
+        }
+
+        if (signInAction) {
+            task = yield fork(signInSaga, signInAction)
+        }
+
+        const { type } = yield take([
+            SIGN_UP_FAIL,
+            SIGN_IN_FAIL,
+            SIGN_OUT_REQUEST,
+            CANCEL_AUTH_REQUEST
+        ]) 
+
+        if (type === SIGN_UP_FAIL || type === SIGN_IN_FAIL) {
+            continue
+        }
+
+        if (type === CANCEL_AUTH_REQUEST) {
+            yield cancel(task)
+            continue
+        }
+
+        if (type === SIGN_OUT_REQUEST) {
+            yield call(signOutSaga)
+        }
+        //yield* signOutSaga()
+    }
 }
 

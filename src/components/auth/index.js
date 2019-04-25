@@ -4,7 +4,8 @@ import { connect } from 'react-redux'
 import {
     signUp,
     signIn,
-    signOut
+    signOut,
+    cancelAuth
 } from '../../ducks/auth'
 import AuthForm from './auth-form'
 
@@ -23,15 +24,17 @@ const Auth = class extends Component {
     }
 
     renderControls() {
-        const { email, signOut } = this.props
+        const { isPending, email, signOut, cancelAuth } = this.props
+
+        if (isPending && !email) {
+            return <button onClick={cancelAuth}>Cancel Auth</button>
+        } 
 
         if (!email) {
             return null
         }
 
-        return (
-            <button onClick={signOut}>Sign Out</button>
-        )
+        return <button onClick={signOut}>Sign Out</button>
     }
 
     renderForms() {
@@ -65,7 +68,8 @@ const mapStateToProps = state => ({
 const mapDispatchToProps = {
     signUp,
     signIn,
-    signOut
+    signOut,
+    cancelAuth
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(Auth)
