@@ -1,12 +1,15 @@
 import React, { Component } from 'react'
 import { connect } from 'react-redux'
 
-import { signUp } from '../../ducks/auth'
+import {
+    signUp,
+    signIn
+} from '../../ducks/auth'
 import AuthForm from './auth-form'
 
 const Auth = class extends Component {
     render() {
-    const { isPending, email, error, signUp } = this.props
+    const { isPending, email, error, signUp, signIn } = this.props
 
         return(
             <div>
@@ -17,7 +20,7 @@ const Auth = class extends Component {
                     caption="Sign Up"
                     isPending={isPending} />
                 <AuthForm
-                    submit={(email, password) => console.log('Sign In', email, password)}
+                    submit={signIn}
                     caption="Sign In"
                     isPending={isPending} />
                 {error ? <p>{error.message}</p> : null}
@@ -33,7 +36,8 @@ const mapStateToProps = state => ({
 })
 
 const mapDispatchToProps = {
-    signUp
+    signUp,
+    signIn
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(Auth)
